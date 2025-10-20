@@ -1,0 +1,240 @@
+This is a real testing framework that is more structured and scalable Implementation of the same concept compare to the prototype one.
+
+🧩 1. The Initial AI_Model_Test_Framework - QA Sandbox
+
+The first version was a simpler prototype
+Trained a model (model_training.py)
+Wrote tests in a single file (test_model.py)
+Run using pytest
+Learn the process of testing AI models manually inside PyCharm
+
+🧠 It’s ideal for learning and experimentation, like:
+Practicing functional/performance/bias testing
+Understanding model behavior
+Running quick tests in one script
+
+🚀 2. This new AI_Test_Framework - QA Portfolio Framework
+
+This version is the professional, modular version of the same framework — designed like a real-world QA automation project.
+
+Below is what’s new and why it’s more powerful:
+
+Area	Initial Version	New Framework
+Project Scope	Simple test script	Full, scalable framework
+Structure	Flat files	Modular folders (src/, tests/, reports/, etc.)
+Reusability	Limited	Reusable across multiple models and datasets
+Reporting	Console output	HTML test reports via pytest-html
+Integration	Manual only	CI/CD-ready (can integrate with GitHub Actions, Jenkins, etc.)
+Data Management	In-code only	Dedicated data/ folder for versioned datasets
+Maintenance	Small-scale	Enterprise-level maintainability
+Test Categories	All-in-one file	Split: functional, performance, bias, drift
+Version Control	Optional	Git-friendly folder layout
+
+Simulating a small **loan approval model** and writing **automated QA-style test cases** around it.
+
+---
+
+## 🧩 Scenario
+
+A machine learning model predicts whether a **loan should be approved (`1`) or denied (`0`)** based on customer features like income, credit score, and age.
+
+Actions:
+
+1. Load a dummy model (pre-trained or simulated).
+2. Write Python tests to verify predictions, accuracy, and bias.
+3. Use `pytest`, `scikit-learn`, and `Evidently AI` for validation.
+
+---
+
+## 🧠 Step 1: Setup
+
+```bash
+pip install pytest scikit-learn pandas numpy evidently
+```
+
+---
+
+## 🧱 Step 2: Sample Model (Simulated)
+
+In practice, this model might come from mostly Data Science team.
+For now, I'm training a simple logistic regression model on fake data.
+
+```python
+# file: model_training.py
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Sample dataset
+data = pd.DataFrame({
+    "income": [30, 50, 80, 20, 45, 70, 100, 60],
+    "credit_score": [600, 650, 720, 580, 640, 700, 750, 680],
+    "age": [25, 30, 40, 22, 28, 35, 45, 32],
+    "loan_approved": [0, 1, 1, 0, 1, 1, 1, 1]
+})
+
+X = data[["income", "credit_score", "age"]]
+y = data["loan_approved"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+model = LogisticRegression().fit(X_train, y_train)
+
+# Evaluate
+preds = model.predict(X_test)
+print("Accuracy:", accuracy_score(y_test, preds))
+
+# Save the model
+import joblib
+joblib.dump(model, "loan_model.pkl")
+```
+
+---
+
+## 🧪 Step 3: QA Test Cases for AI Model
+
+### ✅ **1. Functional Test** — Validate Output Type and Range
+
+```python
+# file: test_model.py
+import numpy as np
+import pandas as pd
+import joblib
+
+model = joblib.load("loan_model.pkl")
+
+def test_prediction_output_type():
+    X_sample = pd.DataFrame([[40, 650, 30]], columns=["income", "credit_score", "age"])
+    y_pred = model.predict(X_sample)
+    assert y_pred.dtype == np.int64, "Prediction should be integer (0 or 1)"
+    assert y_pred[0] in [0, 1], "Prediction should be either 0 or 1"
+```
+
+---
+
+### 📈 **2. Performance Test** — Check Model Accuracy Threshold
+
+Testing against a validation dataset to ensure minimum performance.
+
+```python
+from sklearn.metrics import accuracy_score
+
+def test_model_accuracy_threshold():
+    test_data = pd.DataFrame({
+        "income": [30, 80, 45, 60],
+        "credit_score": [620, 710, 640, 690],
+        "age": [27, 42, 33, 38],
+        "loan_approved": [0, 1, 1, 1]
+    })
+    X_test = test_data[["income", "credit_score", "age"]]
+    y_test = test_data["loan_approved"]
+    preds = model.predict(X_test)
+
+    accuracy = accuracy_score(y_test, preds)
+    assert accuracy >= 0.75, f"Model accuracy too low: {accuracy:.2f}"
+```
+
+---
+
+### ⚖️ **3. Bias/Fairness Test** — Gender or Age Group Bias
+
+Simulate by checking whether older applicants are unfairly rejected.
+
+```python
+def test_no_age_bias():
+    data = pd.DataFrame({
+        "income": [40, 40, 60, 60],
+        "credit_score": [650, 650, 700, 700],
+        "age": [25, 45, 25, 45]
+    })
+
+    preds = model.predict(data)
+    avg_young = preds[:2].mean()
+    avg_old = preds[2:].mean()
+
+    bias_gap = abs(avg_young - avg_old)
+    assert bias_gap < 0.3, f"Potential age bias detected: gap={bias_gap:.2f}"
+```
+
+---
+
+### 📊 **4. Drift or Data Consistency Test** — Using Evidently AI
+
+This checks if new data has changed significantly compared to training data.
+
+```python
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+
+def test_data_drift():
+    ref_data = pd.DataFrame({
+        "income": [30, 50, 80, 20, 45, 70, 100, 60],
+        "credit_score": [600, 650, 720, 580, 640, 700, 750, 680],
+        "age": [25, 30, 40, 22, 28, 35, 45, 32]
+    })
+
+    new_data = pd.DataFrame({
+        "income": [10, 15, 20, 25, 30],
+        "credit_score": [400, 420, 450, 470, 480],
+        "age": [18, 20, 21, 22, 25]
+    })
+
+    report = Report(metrics=[DataDriftPreset()])
+    report.run(reference_data=ref_data, current_data=new_data)
+
+    result = report.as_dict()
+    assert not result['metrics'][0]['result']['data']['drift_detected'], "Data drift detected!"
+```
+
+---
+
+## 🧰 Step 4: Running of Tests
+
+In terminal:
+
+```bash
+pytest -v
+```
+
+This runs all tests and report pass/fail outcomes.
+
+---
+
+## 🌟 Step 5: CI/CD Integration (Next CICD Project Folder)
+
+integrating these tests into your **CI/CD pipeline** GitHub Actions (can be done in Jenkins, or Azure DevOps) to automatically:
+
+* Run whenever a new model version is deployed.
+* Fail the build if accuracy drops or drift/bias is detected.
+
+---
+
+## ✅ Summary
+
+| Test Type   | Purpose                   | Example              |
+| ----------- | ------------------------- | -------------------- |
+| Functional  | Verify output correctness | Output is 0 or 1     |
+| Performance | Maintain accuracy         | Accuracy ≥ 0.75      |
+| Fairness    | Check for bias            | Age/gender gap < 0.3 |
+| Drift       | Detect data changes       | No significant drift |
+
+---
+
+How to Run Them All?
+
+To run all tests:
+
+pytest --html=reports/test_report.html --self-contained-html
+
+
+To run only performance tests:
+
+pytest tests/test_performance.py
+
+
+To run only drift tests:
+
+pytest tests/test_drift.py
+
+
+This gives full control over which tests to execute, and the HTML reports will clearly show which category passed or failed.

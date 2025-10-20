@@ -1,0 +1,283 @@
+## 🧱 FRAMEWORK STRUCTURE OVERVIEW FOR AI/ML COMPANIES BY QA ENGINEER
+
+Below is the **recommended structure** inside PyCharm project:
+
+```
+AI_Test_Framework/
+│
+├── data/
+│   ├── training_data.csv
+│   └── test_data.csv
+│
+├── model/
+│   └── loan_model.pkl
+│
+├── src/
+│   ├── __init__.py
+│   ├── model_training.py
+│   ├── data_loader.py
+│   └── utils.py
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_functional.py
+│   ├── test_performance.py
+│   ├── test_fairness.py
+│   └── test_drift.py
+│
+├── reports/
+│   ├── test_report.html
+│   └── drift_report.html
+│
+├── requirements.txt
+├── pytest.ini
+└── README.md
+```
+
+---
+
+## ⚙️ STEP 1: Project Setup
+
+In your **PyCharm Terminal**, run:
+
+```bash
+pip install pytest scikit-learn pandas numpy evidently joblib pytest-html
+```
+
+Then create a `requirements.txt` file with the same dependencies.
+
+---
+
+## 🧠 STEP 2: Core Files
+
+### 📘 `src/data_loader.py`
+
+Handles loading data from CSV or database.
+
+```python
+import pandas as pd
+
+def load_data(file_path):
+    return pd.read_csv(file_path)
+```
+
+---
+
+### 📘 `src/utils.py`
+
+Contains helper functions for predictions and metric checks.
+
+```python
+import joblib
+from sklearn.metrics import accuracy_score
+
+def load_model(model_path):
+    return joblib.load(model_path)
+
+def evaluate_model(model, X, y):
+    preds = model.predict(X)
+    return accuracy_score(y, preds)
+```
+
+---
+
+### 📘 `src/model_training.py`
+
+Trains and saves your model.
+
+```python
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+import joblib
+
+def train_model():
+    data = pd.DataFrame({
+        "income": [30, 50, 80, 20, 45, 70, 100, 60],
+        "credit_score": [600, 650, 720, 580, 640, 700, 750, 680],
+        "age": [25, 30, 40, 22, 28, 35, 45, 32],
+        "loan_approved": [0, 1, 1, 0, 1, 1, 1, 1]
+    })
+
+    X = data[["income", "credit_score", "age"]]
+    y = data["loan_approved"]
+
+    model = LogisticRegression().fit(X, y)
+    joblib.dump(model, "model/loan_model.pkl")
+    print("✅ Model trained and saved successfully.")
+
+if __name__ == "__main__":
+    train_model()
+```
+
+Run this in PyCharm to generate your model file.
+
+---
+
+## 🧪 STEP 3: Test Files
+
+Each test file focuses on one aspect of AI QA.
+
+### 🧩 `tests/test_functional.py`
+
+```python
+from src.utils import load_model
+import pandas as pd
+import numpy as np
+
+model = load_model("model/loan_model.pkl")
+
+def test_prediction_output_type():
+    X_sample = pd.DataFrame([[40, 650, 30]], columns=["income", "credit_score", "age"])
+    y_pred = model.predict(X_sample)
+    assert y_pred.dtype == np.int64
+    assert y_pred[0] in [0, 1]
+```
+
+---
+
+### 📈 `tests/test_performance.py`
+
+```python
+import pandas as pd
+from src.utils import load_model, evaluate_model
+
+model = load_model("model/loan_model.pkl")
+
+def test_model_accuracy_threshold():
+    test_data = pd.DataFrame({
+        "income": [30, 80, 45, 60],
+        "credit_score": [620, 710, 640, 690],
+        "age": [27, 42, 33, 38],
+        "loan_approved": [0, 1, 1, 1]
+    })
+    X_test = test_data[["income", "credit_score", "age"]]
+    y_test = test_data["loan_approved"]
+    accuracy = evaluate_model(model, X_test, y_test)
+    assert accuracy >= 0.75, f"Accuracy too low: {accuracy:.2f}"
+```
+
+---
+
+### ⚖️ `tests/test_fairness.py`
+
+```python
+import pandas as pd
+from src.utils import load_model
+
+model = load_model("model/loan_model.pkl")
+
+def test_no_age_bias():
+    data = pd.DataFrame({
+        "income": [40, 40, 60, 60],
+        "credit_score": [650, 650, 700, 700],
+        "age": [25, 45, 25, 45]
+    })
+    preds = model.predict(data)
+    avg_young = preds[:2].mean()
+    avg_old = preds[2:].mean()
+    bias_gap = abs(avg_young - avg_old)
+    assert bias_gap < 0.3, f"Age bias detected! Gap={bias_gap:.2f}"
+```
+
+---
+
+### 📊 `tests/test_drift.py`
+
+```python
+import pandas as pd
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+
+def test_data_drift():
+    ref_data = pd.DataFrame({
+        "income": [30, 50, 80, 20, 45, 70, 100, 60],
+        "credit_score": [600, 650, 720, 580, 640, 700, 750, 680],
+        "age": [25, 30, 40, 22, 28, 35, 45, 32]
+    })
+    new_data = pd.DataFrame({
+        "income": [10, 15, 20, 25, 30],
+        "credit_score": [400, 420, 450, 470, 480],
+        "age": [18, 20, 21, 22, 25]
+    })
+    report = Report(metrics=[DataDriftPreset()])
+    report.run(reference_data=ref_data, current_data=new_data)
+    result = report.as_dict()
+    drift_detected = result['metrics'][0]['result']['data']['drift_detected']
+    assert not drift_detected, "Data drift detected!"
+```
+
+---
+
+## 🧰 STEP 4: Run All Tests in PyCharm
+
+You can run all tests at once using either:
+
+**Option 1:** Right-click the `tests` folder → **Run ‘pytest in tests’**
+**Option 2:** Run from terminal:
+
+```bash
+pytest -v --html=reports/test_report.html
+```
+
+This will generate a clean **HTML report** in `reports/test_report.html`.
+
+---
+
+## 🚀 STEP 5: Automate with `pytest.ini`
+
+Create a file `pytest.ini` in your root folder:
+
+```ini
+[pytest]
+addopts = -v --html=reports/test_report.html
+testpaths = tests
+```
+
+Now PyCharm will automatically use this configuration when you run tests.
+
+---
+
+## 🧭 STEP 6: (Optional) Add to CI/CD
+
+If you use GitHub or Azure DevOps, you can run all tests automatically on each code push.
+
+Example **GitHub Actions YAML**:
+
+```yaml
+name: AI Model Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Tests
+        run: pytest
+```
+
+---
+
+## ✅ YOU NOW HAVE
+
+* 🧠 A modular AI model testing framework
+* 🧪 Automated tests (functional, performance, fairness, drift)
+* 🧾 HTML test reports
+* ⚙️ CI/CD ready structure
+* 💻 Full PyCharm integration
+
+---
+
+Would you like me to add **logging and reporting enhancements** next — e.g., automatically saving prediction logs and performance metrics into a CSV or JSON report after each test run?
+It’s the next professional step for a QA Automation framework.
