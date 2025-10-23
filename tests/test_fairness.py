@@ -1,8 +1,17 @@
 # Test file focuses on fairness aspect of AI QA
+
 import pandas as pd
 from src.utils import load_model
 
-model = load_model("model/loan_model.pkl")
+import os
+import joblib
+
+# Construct absolute path to the model file
+model_path = os.path.join(os.path.dirname(__file__), "..", "model", "loan_model.pkl")
+model_path = os.path.abspath(model_path)
+
+model = joblib.load(model_path)
+
 
 def test_no_age_bias():
     data = pd.DataFrame({

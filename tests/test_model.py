@@ -2,9 +2,15 @@
 
 import numpy as np
 import pandas as pd
+import os
 import joblib
 
-model = joblib.load("loan_model.pkl")
+# Construct absolute path to the model file
+model_path = os.path.join(os.path.dirname(__file__), "..", "model", "loan_model.pkl")
+model_path = os.path.abspath(model_path)
+
+model = joblib.load(model_path)
+
 
 def test_prediction_output_type():
     X_sample = pd.DataFrame([[40, 650, 30]], columns=["income", "credit_score", "age"])

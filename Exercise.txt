@@ -226,6 +226,9 @@ To run all tests:
 
 pytest --html=reports/test_report.html --self-contained-html
 
+python -m pytest tests/test_drift.py -v
+
+
 
 To run only performance tests:
 
@@ -238,3 +241,18 @@ pytest tests/test_drift.py
 
 
 This gives full control over which tests to execute, and the HTML reports will clearly show which category passed or failed.
+
+
+Output for the model
+
+(.venv) olakoya@MacBookPro AI_Test_Framework % python -m pytest tests/test_model.py -v
+======================================================== test session starts =========================================================
+platform darwin -- Python 3.12.0, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/olakoya/Desktop/AI_Frameworks/AI_Test_Framework
+configfile: pytest.ini
+plugins: anyio-4.11.0, Faker-37.11.0
+collected 1 item                                                                                                                     
+
+tests/test_model.py .                                                                                                          [100%]
+
+========================================================= 1 passed in 4.23s ==========================================================
